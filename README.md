@@ -14,9 +14,11 @@ $ cargo build
 ```bash
 # simple object
 jsg name=jsg num_str=25 num:=25 bool:=true some:=null
+'{"name":"jsg","num_str":"25","num":25,"bool":true,"some":null}'
 
 # nested objects
 jsg name=test obj:="$(jsg field=value)" arr:="$(jsg --arr 1 string true)"
+'{"name":"test","obj":{"field":"value"},"arr":[1,"string",true]}'
 
 # arrays
 jsg --arr 1 'string with spaces' string 3
