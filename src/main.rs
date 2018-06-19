@@ -15,7 +15,8 @@ fn main() {
             println!("{}", USAGE);
             process::exit(1);
         }
-        Some("--arr") => do_array(env::args().skip(2)),
+        Some("--arr") => do_array(false, env::args().skip(2)),
+        Some("--arr-str") => do_array(true, env::args().skip(2)),
         _ => do_object(env::args().skip(1)),
     };
 
@@ -28,7 +29,11 @@ fn main() {
     }
 }
 
-fn quote_val(val: String) -> String {
+fn quote_val(force: bool, val: String) -> String {
+    if force {
+        return format!("\"{}\"", val);
+    }
+
     let first_char = val.chars().next().unwrap();
     let is_num = first_char.is_numeric();
     let is_obj = first_char == '{';
@@ -43,10 +48,11 @@ fn quote_val(val: String) -> String {
     }
 }
 
-fn do_array(args: Skip<Args>) -> Result<(), Box<Error>> {
+fn do_array(as_str: bool, args: Skip<Args>) -> Result<(), Box<Error>> {
     let mut arr: Vec<serde_json::Value> = vec![];
     for arg in args {
-        let val = serde_json::from_str(&quote_val(arg))?;
+        let quoted_arg = quote_val(as_str, arg);
+        let val = serde_json::from_str(&quoted_arg)?;
         arr.push(val);
     }
 
@@ -62,15 +68,27 @@ fn do_object(args: Skip<Args>) -> Result<(), Box<Error>> {
             return Err(format!("each argument needs to be a key=value pair, got: {}", arg).into());
         }
 
-        let val_part = parts.pop().unwrap().to_string();
+        let mut val_part = parts.pop().unwrap().to_string();
         if val_part.len() == 0 {
             return Err(format!("field value can't be empty").into());
         }
 
-        let val = serde_json::from_str(&quote_val(val_part)).map_err(|err| {
-            Into::<Box<Error>>::into(format!("parse json failed for \"{}\": {}", parts[1], err))
+        let mut key_part = parts.pop().unwrap().to_string();
+        if key_part.len() == 0 {
+            return Err(format!("field name can't be empty").into());
+        }
+
+        let last_key_char = key_part.chars().next_back().unwrap();
+        let force_str = last_key_char != ':';
+        if !force_str {
+            key_part.pop();
+        }
+
+        val_part = quote_val(force_str, val_part);
+        let val = serde_json::from_str(&val_part).map_err(|err| {
+            Into::<Box<Error>>::into(format!("parse json failed for \"{}\": {}", val_part, err))
         })?;
-        obj[parts[0]] = val;
+        obj[key_part] = val;
     }
 
     println!("{}", serde_json::to_string(&obj).unwrap());

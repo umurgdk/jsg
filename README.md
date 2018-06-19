@@ -10,6 +10,20 @@ $ cargo build
 
 ## Example Usage
 
-```
-$ jsg name=jsg num=25 num_as_str="25" arr="$(jsg --arr 1 'string with spaces' string 3)" obj="$(jsg field=value)" bool=false another=null
+
+```bash
+# simple object
+jsg name=jsg num_str=25 num:=25 bool:=true some:=null
+
+# nested objects
+jsg name=test obj:="$(jsg field=value)" arr:="$(jsg --arr 1 string true)"
+
+# arrays
+jsg --arr 1 'string with spaces' string 3
+'[1, "string with spaces", "string", 3]'
+
+# arrays - do not evaluate types and accept everything as strings
+jsg --arr-str 12 str
+'["12", "str"]'
+
 ```
