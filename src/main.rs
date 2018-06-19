@@ -1,16 +1,18 @@
 extern crate serde_json;
 
 use std::env;
+use std::env::Args;
 use std::error::Error;
+use std::iter::Skip;
 use std::process;
+
+const USAGE: &'static str = "USAGE: jsg name=jsg num=25 num_as_str=\"25\" arr=\"$(jsg --arr 1 string 3)\" obj=\"$(jsg field=value)\" bool=false another=null";
 
 fn main() {
     let first_arg = env::args().skip(1).next();
     let res = match first_arg.as_ref().map(String::as_ref) {
         Some("--help") => {
-            println!(
-                "USAGE: jsg name=jsg num=25 num_as_str=\"25\" arr=\"$(jsg --arr 1 string 3)\" obj=\"$(jsg field=value)\" bool=false another=null"
-            );
+            println!("{}", USAGE);
             process::exit(1);
         }
         Some("--arr") => do_array(env::args().skip(2)),
@@ -41,7 +43,7 @@ fn quote_val(val: String) -> String {
     }
 }
 
-fn do_array(args: impl Iterator<Item = String>) -> Result<(), Box<Error>> {
+fn do_array(args: Skip<Args>) -> Result<(), Box<Error>> {
     let mut arr: Vec<serde_json::Value> = vec![];
     for arg in args {
         let val = serde_json::from_str(&quote_val(arg))?;
@@ -52,7 +54,7 @@ fn do_array(args: impl Iterator<Item = String>) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-fn do_object(args: impl Iterator<Item = String>) -> Result<(), Box<Error>> {
+fn do_object(args: Skip<Args>) -> Result<(), Box<Error>> {
     let mut obj = serde_json::Value::Object(serde_json::Map::new());
     for arg in args {
         let mut parts = arg.splitn(2, '=').collect::<Vec<_>>();
